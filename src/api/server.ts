@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { typeDefs } from './schema.js';
 import { resolvers } from './resolvers.js';
 import dotenv from 'dotenv';
@@ -19,6 +20,8 @@ async function startServer() {
   const server = new ApolloServer({
     typeDefs,
     resolvers,
+    introspection: true,
+    plugins: [ApolloServerPluginLandingPageLocalDefault({ footer: false })]
   });
 
   await server.start();

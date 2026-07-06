@@ -1,50 +1,70 @@
 import { PrismaClient } from '@prisma/client';
 import { GraphQLError } from 'graphql';
-import { coingecko } from './coingeckoClient.js';
+import { binance } from './binanceClient.js';
 import { redis } from './redis.js';
 
 const prisma = new PrismaClient();
 
+const COMMON_NAMES: Record<string, string> = {
+  'bitcoin': 'btc',
+  'ethereum': 'eth',
+  'solana': 'sol',
+  'cardano': 'ada',
+  'ripple': 'xrp',
+  'dogecoin': 'doge',
+  'polkadot': 'dot',
+  'chainlink': 'link',
+  'litecoin': 'ltc',
+  'binancecoin': 'bnb',
+  'matic-network': 'matic',
+  'avalanche-2': 'avax',
+};
+
 export async function getCoinGeckoId(symbol: string): Promise<string> {
-  const lowercaseSymbol = symbol.toLowerCase();
-  
+  let lookupName = symbol.toLowerCase();
+  if (COMMON_NAMES[lookupName]) {
+    lookupName = COMMON_NAMES[lookupName];
+  }
+
   const existingCoin = await prisma.coin.findUnique({
-    where: { symbol: lowercaseSymbol }
+    where: { symbol: lookupName }
   });
   if (existingCoin) return existingCoin.coingeckoId;
 
-  let coinsListJson = await redis.get('coins_list');
-  let coinsList: { id: string; symbol: string; name: string }[] = [];
+  let symbolsListJson = await redis.get('binance_symbols');
+  let symbolsList: { symbol: string; baseAsset: string; quoteAsset: string; status: string }[] = [];
 
-  if (!coinsListJson) {
+  if (!symbolsListJson) {
     try {
-      coinsList = await coingecko.getCoinsList();
-      await redis.set('coins_list', JSON.stringify(coinsList), 'EX', 86400); // 24 hours
+      symbolsList = await binance.getExchangeInfo();
+      await redis.set('binance_symbols', JSON.stringify(symbolsList), 'EX', 86400); // 24 hours
     } catch (err) {
-      throw new GraphQLError('Failed to fetch coins list from CoinGecko', {
-        extensions: { code: 'COINGECKO_API_ERROR' },
+      throw new GraphQLError('Failed to fetch symbols list from Binance', {
+        extensions: { code: 'BINANCE_API_ERROR' },
       });
     }
   } else {
-    coinsList = JSON.parse(coinsListJson);
+    symbolsList = JSON.parse(symbolsListJson);
   }
 
-  const matches = coinsList.filter(c => c.symbol.toLowerCase() === lowercaseSymbol);
+  const usdtPairs = symbolsList.filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING');
+  
+  const matches = usdtPairs.filter(s => s.baseAsset.toLowerCase() === lookupName);
   if (matches.length === 0) {
-    throw new GraphQLError(`Coin with symbol ${symbol} not found`, {
+    throw new GraphQLError(`Coin with symbol ${symbol} not found on Binance (USDT pairs only)`, {
       extensions: { code: 'COIN_NOT_FOUND' },
     });
   }
 
-  const coinData = matches.find(c => c.id === lowercaseSymbol) || matches[0];
+  const binanceSymbol = matches[0].symbol;
   
   await prisma.coin.create({
     data: {
-      symbol: lowercaseSymbol,
-      coingeckoId: coinData.id,
-      name: coinData.name,
+      symbol: lookupName,
+      coingeckoId: binanceSymbol, // We reuse the coingeckoId column to store the Binance Symbol (e.g. BTCUSDT)
+      name: matches[0].baseAsset,
     }
   });
 
-  return coinData.id;
+  return binanceSymbol;
 }
