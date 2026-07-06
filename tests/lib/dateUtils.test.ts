@@ -1,4 +1,4 @@
-import { Interval, generateRequiredDates, findMissingRanges } from './dateUtils.js';
+import { Interval, generateRequiredDates, findMissingRanges } from '../../src/lib/dateUtils.js';
 
 describe('Date Utilities', () => {
   describe('generateRequiredDates', () => {

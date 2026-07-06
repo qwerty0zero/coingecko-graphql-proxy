@@ -1,4 +1,4 @@
-import { resolvers } from './resolvers.js';
+import { resolvers } from '../../src/api/resolvers.js';
 
 describe('Resolvers', () => {
   it('should export Query.historicalPrices', () => {
