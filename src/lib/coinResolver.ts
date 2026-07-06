@@ -38,8 +38,9 @@ export async function getCoinGeckoId(symbol: string): Promise<string> {
     try {
       symbolsList = await binance.getExchangeInfo();
       await redis.set('binance_symbols', JSON.stringify(symbolsList), 'EX', 86400); // 24 hours
-    } catch (err) {
-      throw new GraphQLError('Failed to fetch symbols list from Binance', {
+    } catch (err: any) {
+      console.error('Binance ExchangeInfo Error:', err);
+      throw new GraphQLError(`Failed to fetch symbols list from Binance: ${err.message}`, {
         extensions: { code: 'BINANCE_API_ERROR' },
       });
     }
