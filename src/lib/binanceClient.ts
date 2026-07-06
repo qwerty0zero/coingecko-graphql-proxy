@@ -40,7 +40,12 @@ export class BinanceService {
 
   async getExchangeInfo(): Promise<{ symbol: string; baseAsset: string; quoteAsset: string; status: string }[]> {
     const data = await this.limiter.schedule({ id: 'exchangeInfo' }, () => this.fetchApi('/exchangeInfo'));
-    return data.symbols;
+    return data.symbols.map((s: any) => ({
+      symbol: s.symbol,
+      baseAsset: s.baseAsset,
+      quoteAsset: s.quoteAsset,
+      status: s.status
+    }));
   }
 
   async getKlines(
