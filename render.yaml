@@ -3,7 +3,7 @@ services:
     name: coingecko-graphql-api
     env: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build && npm run migrate
     startCommand: npm run start:api
     healthCheckPath: /health
     envVars:
