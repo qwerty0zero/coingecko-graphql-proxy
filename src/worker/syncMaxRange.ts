@@ -53,25 +53,10 @@ export async function processSyncMaxRange(job: Job) {
           source: 'binance'
         }));
 
-        await prisma.$transaction(
-          createData.map((data: any) => 
-            prisma.priceHistory.upsert({
-              where: {
-                coinId_date_granularity: {
-                  coinId: data.coinId,
-                  date: data.date,
-                  granularity: 'daily'
-                }
-              },
-              update: {
-                priceUsd: data.priceUsd,
-                marketCap: data.marketCap,
-                volume: data.volume,
-              },
-              create: data
-            })
-          )
-        );
+        await prisma.priceHistory.createMany({
+          data: createData,
+          skipDuplicates: true,
+        });
       }
 
       currentStart = chunkStart;
@@ -109,25 +94,10 @@ export async function processSyncMaxRange(job: Job) {
           source: 'binance'
         }));
 
-        await prisma.$transaction(
-          createData.map((data: any) => 
-            prisma.priceHistory.upsert({
-              where: {
-                coinId_date_granularity: {
-                  coinId: data.coinId,
-                  date: data.date,
-                  granularity: 'daily'
-                }
-              },
-              update: {
-                priceUsd: data.priceUsd,
-                marketCap: data.marketCap,
-                volume: data.volume,
-              },
-              create: data
-            })
-          )
-        );
+        await prisma.priceHistory.createMany({
+          data: createData,
+          skipDuplicates: true,
+        });
       }
 
       currentEnd = targetEnd;
